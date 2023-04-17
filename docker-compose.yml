@@ -1,0 +1,57 @@
+# wordpress+mariadb sample
+
+version: '3'
+
+x-vars:
+  dbname: &dbname wordpress
+  dbuser: &dbuser wordpress
+  # DBパスワードはsecrets渡しに変更
+  dbpass: &dbpass /run/secrets/dbpass
+
+secrets:
+  dbpass:
+    file: dbpass.txt
+
+
+services:
+  wordpress:
+    image: wordpress:6-apache
+    ports:
+      - 8888:80
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: *dbuser
+      WORDPRESS_DB_NAME: *dbname
+      WORDPRESS_DB_PASSWORD_FILE: *dbpass
+    volumes:
+      - data:/var/www/html
+    links:
+      - db
+    depends_on:
+      - db
+    secrets:
+      - dbpass
+  db:
+    image: mariadb
+    environment:
+      MARIADB_RANDOM_ROOT_PASSWORD: "1"
+      MARIADB_DATABASE: *dbname
+      MARIADB_USER: *dbuser
+      MARIADB_PASSWORD_FILE: *dbpass
+    volumes:
+      - db:/var/lib/mysql
+    healthcheck:
+      # 本当はdbpassを展開させたいけど難しいのでアドホックな対応
+      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u wordpress --password=$(cat /run/secrets/dbpass)"]
+      interval: 30s
+      timeout: 2s
+      retries: 5
+      start_period: 3s
+    secrets:
+      - dbpass
+
+volumes:
+  data:
+    driver: local
+  db:
+    driver: local
