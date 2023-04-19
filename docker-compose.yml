@@ -5,13 +5,8 @@ version: '3'
 x-vars:
   dbname: &dbname wordpress
   dbuser: &dbuser wordpress
-  # DBパスワードはsecrets渡しに変更
-  dbpass: &dbpass /run/secrets/dbpass
-
-secrets:
-  dbpass:
-    file: dbpass.txt
-
+  # DBパスワードは本来ここに書いてはいけません
+  dbpass: &dbpass wpadmin
 
 services:
   wordpress:
@@ -22,22 +17,20 @@ services:
       WORDPRESS_DB_HOST: db
       WORDPRESS_DB_USER: *dbuser
       WORDPRESS_DB_NAME: *dbname
-      WORDPRESS_DB_PASSWORD_FILE: *dbpass
+      WORDPRESS_DB_PASSWORD: *dbpass
     volumes:
       - data:/var/www/html
     links:
       - db
     depends_on:
       - db
-    secrets:
-      - dbpass
   db:
     image: mariadb
     environment:
       MARIADB_RANDOM_ROOT_PASSWORD: "1"
       MARIADB_DATABASE: *dbname
       MARIADB_USER: *dbuser
-      MARIADB_PASSWORD_FILE: *dbpass
+      MARIADB_PASSWORD: *dbpass
     volumes:
       - db:/var/lib/mysql
     healthcheck:
@@ -47,8 +40,6 @@ services:
       timeout: 2s
       retries: 5
       start_period: 3s
-    secrets:
-      - dbpass
 
 volumes:
   data:
